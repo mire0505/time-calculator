@@ -11,7 +11,7 @@
       <section class="calculator" aria-labelledby="app-title">
         <header class="app-header">
           <div>
-            <p class="eyebrow">형식: DDMMYY HHMM</p>
+            <p id="currentFormatText" class="eyebrow">형식: DDMMYY HHMM</p>
             <h1 id="app-title">시간 계산</h1>
           </div>
           <button id="clearButton" class="icon-button" type="button" title="초기화" aria-label="초기화">
@@ -19,10 +19,31 @@
           </button>
         </header>
 
+        <section class="format-selector" aria-labelledby="format-title">
+          <div>
+            <p id="format-title">날짜 형식</p>
+            <p class="format-helper">입력할 날짜 순서를 선택하세요.</p>
+          </div>
+          <div class="segmented-control" role="radiogroup" aria-label="날짜 형식">
+            <label>
+              <input type="radio" name="dateFormat" value="DDMMYY" checked />
+              <span>DDMMYY <small>HHMM</small></span>
+            </label>
+            <label>
+              <input type="radio" name="dateFormat" value="YYMMDD" />
+              <span>YYMMDD <small>HHMM</small></span>
+            </label>
+            <label>
+              <input type="radio" name="dateFormat" value="YYYYMMDD" />
+              <span>YYYYMMDD <small>HHMM</small></span>
+            </label>
+          </div>
+        </section>
+
         <div class="quick-entry">
           <div class="label-row">
             <label for="quickInput">한 줄 입력</label>
-            <span class="format-pill">시작 / 종료</span>
+            <span id="quickFormatPill" class="format-pill">시작 / 종료</span>
           </div>
           <input
             id="quickInput"
@@ -38,7 +59,7 @@
           <label class="field-card" for="startInput">
             <span class="label-row">
               <span>시작</span>
-              <span class="format-pill">DDMMYY HHMM</span>
+              <span id="startFormatPill" class="format-pill">DDMMYY HHMM</span>
             </span>
             <input
               id="startInput"
@@ -55,7 +76,7 @@
           <label class="field-card" for="endInput">
             <span class="label-row">
               <span>종료</span>
-              <span class="format-pill">DDMMYY HHMM</span>
+              <span id="endFormatPill" class="format-pill">DDMMYY HHMM</span>
             </span>
             <input
               id="endInput"

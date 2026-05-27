@@ -7,13 +7,72 @@ const resultText = document.querySelector("#resultText");
 const statusText = document.querySelector("#statusText");
 const copyButton = document.querySelector("#copyButton");
 const clearButton = document.querySelector("#clearButton");
+const currentFormatText = document.querySelector("#currentFormatText");
+const quickFormatPill = document.querySelector("#quickFormatPill");
+const startFormatPill = document.querySelector("#startFormatPill");
+const endFormatPill = document.querySelector("#endFormatPill");
+const formatOptions = document.querySelectorAll('input[name="dateFormat"]');
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const previewIdleText = "인식 대기";
+const formatConfigs = {
+  DDMMYY: {
+    label: "DDMMYY HHMM",
+    dateDigits: 6,
+    totalDigits: 10,
+    startExample: "230526 1743",
+    endExample: "260526 1035",
+    getParts(digits) {
+      return {
+        day: Number(digits.slice(0, 2)),
+        month: Number(digits.slice(2, 4)),
+        year: 2000 + Number(digits.slice(4, 6)),
+      };
+    },
+    formatDate(date) {
+      return `${pad(date.getDate())}${pad(date.getMonth() + 1)}${String(date.getFullYear()).slice(-2)}`;
+    },
+  },
+  YYMMDD: {
+    label: "YYMMDD HHMM",
+    dateDigits: 6,
+    totalDigits: 10,
+    startExample: "260523 1743",
+    endExample: "260526 1035",
+    getParts(digits) {
+      return {
+        year: 2000 + Number(digits.slice(0, 2)),
+        month: Number(digits.slice(2, 4)),
+        day: Number(digits.slice(4, 6)),
+      };
+    },
+    formatDate(date) {
+      return `${String(date.getFullYear()).slice(-2)}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+    },
+  },
+  YYYYMMDD: {
+    label: "YYYYMMDD HHMM",
+    dateDigits: 8,
+    totalDigits: 12,
+    startExample: "20260523 1743",
+    endExample: "20260526 1035",
+    getParts(digits) {
+      return {
+        year: Number(digits.slice(0, 4)),
+        month: Number(digits.slice(4, 6)),
+        day: Number(digits.slice(6, 8)),
+      };
+    },
+    formatDate(date) {
+      return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+    },
+  },
+};
 
 let lastResult = "";
+let currentFormatKey = "DDMMYY";
 
-function parseDateTime(rawValue) {
+function parseDateTime(rawValue, config = getCurrentFormat()) {
   const value = rawValue.trim();
 
   if (!value) {
@@ -22,19 +81,18 @@ function parseDateTime(rawValue) {
 
   const digits = value.replace(/\D/g, "");
 
-  if (digits.length > 0 && digits.length < 10) {
+  if (digits.length > 0 && digits.length < config.totalDigits) {
     return { ok: false, incomplete: true, message: "입력 중" };
   }
 
-  if (digits.length !== 10) {
-    return { ok: false, message: "DDMMYY HHMM 형식으로 입력하세요." };
+  if (digits.length !== config.totalDigits) {
+    return { ok: false, message: `${config.label} 형식으로 입력하세요.` };
   }
 
-  const day = Number(digits.slice(0, 2));
-  const month = Number(digits.slice(2, 4));
-  const year = 2000 + Number(digits.slice(4, 6));
-  const hour = Number(digits.slice(6, 8));
-  const minute = Number(digits.slice(8, 10));
+  const { day, month, year } = config.getParts(digits);
+  const timeStart = config.dateDigits;
+  const hour = Number(digits.slice(timeStart, timeStart + 2));
+  const minute = Number(digits.slice(timeStart + 2, timeStart + 4));
   const date = new Date(year, month - 1, day, hour, minute);
 
   const isValid =
@@ -59,18 +117,71 @@ function pad(number) {
   return String(number).padStart(2, "0");
 }
 
-function formatCompactDateTime(rawValue) {
-  const digits = rawValue.replace(/\D/g, "").slice(0, 10);
+function getCurrentFormat() {
+  return formatConfigs[currentFormatKey];
+}
 
-  if (digits.length <= 6) {
+function formatCompactDateTime(rawValue, config = getCurrentFormat()) {
+  const digits = rawValue.replace(/\D/g, "").slice(0, config.totalDigits);
+
+  if (digits.length <= config.dateDigits) {
     return digits;
   }
 
-  return `${digits.slice(0, 6)} ${digits.slice(6)}`;
+  return `${digits.slice(0, config.dateDigits)} ${digits.slice(config.dateDigits)}`;
 }
 
 function formatInputValue(input) {
   input.value = formatCompactDateTime(input.value);
+}
+
+function formatDateForInput(date, config = getCurrentFormat()) {
+  return `${config.formatDate(date)} ${pad(date.getHours())}${pad(date.getMinutes())}`;
+}
+
+function updateQuickInputFromFields() {
+  if (startInput.value && endInput.value) {
+    quickInput.value = `${startInput.value} / ${endInput.value}`;
+  }
+}
+
+function updateFormatUI() {
+  const config = getCurrentFormat();
+
+  currentFormatText.textContent = `형식: ${config.label}`;
+  quickFormatPill.textContent = "시작 / 종료";
+  quickFormatPill.title = config.label;
+  startFormatPill.textContent = config.label;
+  endFormatPill.textContent = config.label;
+  quickInput.placeholder = `${config.startExample} / ${config.endExample}`;
+  startInput.placeholder = `예: ${config.startExample}`;
+  endInput.placeholder = `예: ${config.endExample}`;
+  startInput.maxLength = config.dateDigits + 5;
+  endInput.maxLength = config.dateDigits + 5;
+}
+
+function changeDateFormat(nextFormatKey) {
+  const previousFormat = getCurrentFormat();
+  const previousStart = parseDateTime(startInput.value, previousFormat);
+  const previousEnd = parseDateTime(endInput.value, previousFormat);
+
+  currentFormatKey = nextFormatKey;
+  updateFormatUI();
+
+  if (previousStart.ok) {
+    startInput.value = formatDateForInput(previousStart.date);
+  } else {
+    formatInputValue(startInput);
+  }
+
+  if (previousEnd.ok) {
+    endInput.value = formatDateForInput(previousEnd.date);
+  } else {
+    formatInputValue(endInput);
+  }
+
+  updateQuickInputFromFields();
+  calculate();
 }
 
 function formatDuration(totalMinutes) {
@@ -163,6 +274,7 @@ function calculate() {
 function syncQuickInput() {
   const value = quickInput.value.trim();
   const slashIndex = value.indexOf("/");
+  const config = getCurrentFormat();
   let parts = null;
 
   if (slashIndex >= 0) {
@@ -171,7 +283,7 @@ function syncQuickInput() {
     const digits = value.replace(/\D/g, "");
 
     if (digits.length > 0) {
-      parts = [digits.slice(0, 10), digits.slice(10, 20)];
+      parts = [digits.slice(0, config.totalDigits), digits.slice(config.totalDigits, config.totalDigits * 2)];
     }
   }
 
@@ -188,6 +300,14 @@ function syncQuickInput() {
 }
 
 quickInput.addEventListener("input", syncQuickInput);
+
+formatOptions.forEach((option) => {
+  option.addEventListener("change", () => {
+    if (option.checked) {
+      changeDateFormat(option.value);
+    }
+  });
+});
 
 startInput.addEventListener("input", () => {
   formatInputValue(startInput);
@@ -223,5 +343,6 @@ copyButton.addEventListener("click", async () => {
   }
 });
 
+updateFormatUI();
 quickInput.value = "230526 1743 / 260526 1035";
 syncQuickInput();

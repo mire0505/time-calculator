@@ -93,9 +93,96 @@ h1 {
 }
 
 .quick-entry,
+.format-selector,
 .field-card,
 .result-panel {
   border-bottom: 1px solid var(--line);
+}
+
+.format-selector {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  background: #fbfdfd;
+}
+
+.format-selector p {
+  margin: 0;
+}
+
+#format-title {
+  color: var(--brand);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.format-helper {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #c7d6d8;
+  border-radius: 8px;
+  background: #eef5f5;
+}
+
+.segmented-control label {
+  min-width: 0;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.segmented-control input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented-control span {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  padding: 7px 5px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.1;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.segmented-control small {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.segmented-control input:checked + span {
+  background: #ffffff;
+  color: var(--brand);
+  box-shadow: 0 4px 14px rgba(20, 44, 50, 0.12);
+}
+
+.segmented-control input:focus-visible + span {
+  outline: 3px solid rgba(13, 107, 114, 0.22);
 }
 
 .quick-entry {
@@ -264,6 +351,13 @@ input::placeholder {
     padding: 24px 28px;
   }
 
+  .format-selector {
+    grid-template-columns: 170px 1fr;
+    align-items: center;
+    gap: 18px;
+    padding: 22px 28px;
+  }
+
   .field-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -298,6 +392,7 @@ input::placeholder {
   }
 
   .quick-entry,
+  .format-selector,
   .field-card,
   .result-panel,
   .status-text {
@@ -313,5 +408,15 @@ input::placeholder {
     font-size: 11px;
     padding-left: 8px;
     padding-right: 8px;
+  }
+
+  .segmented-control {
+    grid-template-columns: 1fr;
+  }
+
+  .segmented-control span {
+    min-height: 42px;
+    grid-template-columns: auto auto;
+    gap: 5px;
   }
 }
