@@ -1,0 +1,5 @@
+KakaoTalk_*.jpg
+*.log
+.DS_Store
+Thumbs.db
+.vercel

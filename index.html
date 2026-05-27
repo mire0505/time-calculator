@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>시간 계산</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="calculator" aria-labelledby="app-title">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">형식: DDMMYY HHMM</p>
+            <h1 id="app-title">시간 계산</h1>
+          </div>
+          <button id="clearButton" class="icon-button" type="button" title="초기화" aria-label="초기화">
+            ↺
+          </button>
+        </header>
+
+        <div class="quick-entry">
+          <div class="label-row">
+            <label for="quickInput">한 줄 입력</label>
+            <span class="format-pill">시작 / 종료</span>
+          </div>
+          <input
+            id="quickInput"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="230526 1743 / 260526 1035"
+          />
+        </div>
+
+        <div class="field-grid">
+          <label class="field-card" for="startInput">
+            <span class="label-row">
+              <span>시작</span>
+              <span class="format-pill">DDMMYY HHMM</span>
+            </span>
+            <input
+              id="startInput"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="11"
+              placeholder="예: 230526 1743"
+            />
+            <output id="startPreview">인식 대기</output>
+          </label>
+
+          <label class="field-card" for="endInput">
+            <span class="label-row">
+              <span>종료</span>
+              <span class="format-pill">DDMMYY HHMM</span>
+            </span>
+            <input
+              id="endInput"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="11"
+              placeholder="예: 260526 1035"
+            />
+            <output id="endPreview">인식 대기</output>
+          </label>
+        </div>
+
+        <section class="result-panel" aria-live="polite">
+          <div>
+            <p>총 시간</p>
+            <output id="resultText">--</output>
+          </div>
+          <button id="copyButton" type="button" disabled>복사</button>
+        </section>
+
+        <p id="statusText" class="status-text" role="status"></p>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
