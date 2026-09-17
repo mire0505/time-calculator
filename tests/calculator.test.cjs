@@ -56,6 +56,7 @@ test("opens empty with date controls and copy disabled", () => {
   assert.equal(ui.get("startInput").value, "");
   assert.equal(ui.get("endInput").value, "");
   assert.equal(ui.get("resultText").textContent, "--");
+  assert.equal(ui.get("resultHoursText").textContent, "--");
   for (const id of ["endMinusDay", "endPlusDay", "copyButton"]) assert.equal(ui.get(id).disabled, true);
 });
 
@@ -77,11 +78,14 @@ for (const [format, date, nextDate] of [
     ui.input("endInput", `${date}1830`);
     assert.equal(ui.get("endPreview").textContent, "인식: 23May26 1830");
     assert.equal(ui.get("resultText").textContent, "0일 0시간 47분");
+    assert.equal(ui.get("resultHoursText").textContent, "0시간 47분");
     ui.click("endPlusDay");
     assert.equal(ui.get("endInput").value, `${nextDate} 1830`);
     assert.equal(ui.get("resultText").textContent, "1일 0시간 47분");
+    assert.equal(ui.get("resultHoursText").textContent, "24시간 47분");
     ui.click("endMinusDay");
     assert.equal(ui.get("endInput").value, `${date} 1830`);
+    assert.equal(ui.get("resultHoursText").textContent, "0시간 47분");
     assert.equal(ui.get("quickInput").value, `${date} 1743 / ${date} 1830`);
   });
 
@@ -118,6 +122,7 @@ test("manual end dates and pasted pairs are preserved", () => {
   assert.equal(ui.get("endInput").value, "260526 1035");
   ui.input("quickInput", "23052617432605261035");
   assert.equal(ui.get("resultText").textContent, "2일 16시간 52분");
+  assert.equal(ui.get("resultHoursText").textContent, "64시간 52분");
   ui.input("startInput", "2405261743");
   assert.equal(ui.get("endInput").value, "260526 1035");
 });
@@ -222,4 +227,38 @@ test("four-digit year boundaries remain representable", () => {
   assert.equal(ui.get("endPreview").textContent, "인식: 02Jan01 1035");
   ui.input("endInput", "99991231 1035");
   assert.equal(ui.get("endPlusDay").disabled, true);
+});
+
+for (const [end, expected] of [
+  ["230526 0000", "0시간 0분"],
+  ["230526 0001", "0시간 1분"],
+  ["230526 0059", "0시간 59분"],
+  ["230526 0100", "1시간 0분"],
+  ["240526 0000", "24시간 0분"],
+  ["280526 0135", "121시간 35분"],
+]) {
+  test(`total hours and minutes: ${expected}`, () => {
+    const ui = app();
+    ui.input("quickInput", `230526 0000 / ${end}`);
+    assert.equal(ui.get("resultHoursText").textContent, expected);
+  });
+}
+
+for (const end of ["230526 12", "310226 1200", "220526 1200"]) {
+  test(`clears both results for incomplete or invalid range ending ${end}`, () => {
+    const ui = app();
+    ui.input("quickInput", "230526 1743 / 260526 1035");
+    ui.input("endInput", end);
+    assert.equal(ui.get("resultText").textContent, "--");
+    assert.equal(ui.get("resultHoursText").textContent, "--");
+    assert.equal(ui.get("copyButton").disabled, true);
+  });
+}
+
+test("clear button resets both duration displays", () => {
+  const ui = app();
+  ui.input("quickInput", "230526 1743 / 260526 1035");
+  ui.click("clearButton");
+  assert.equal(ui.get("resultText").textContent, "--");
+  assert.equal(ui.get("resultHoursText").textContent, "--");
 });

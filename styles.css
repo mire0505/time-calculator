@@ -344,6 +344,18 @@ input::placeholder {
   overflow-wrap: anywhere;
 }
 
+#resultHoursText {
+  display: block;
+  min-height: 31px;
+  margin-top: 10px;
+  color: var(--brand-2);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 #copyButton {
   width: 100%;
   min-width: 82px;

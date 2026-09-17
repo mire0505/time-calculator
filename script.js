@@ -4,6 +4,7 @@ const endInput = document.querySelector("#endInput");
 const startPreview = document.querySelector("#startPreview");
 const endPreview = document.querySelector("#endPreview");
 const resultText = document.querySelector("#resultText");
+const resultHoursText = document.querySelector("#resultHoursText");
 const statusText = document.querySelector("#statusText");
 const copyButton = document.querySelector("#copyButton");
 const clearButton = document.querySelector("#clearButton");
@@ -295,6 +296,7 @@ function formatDuration(totalMinutes) {
   return {
     excel: `${pad(days)}days ${pad(hours)}hours ${pad(minutes)}mins`,
     korean: `${days}일 ${hours}시간 ${minutes}분`,
+    hoursMinutes: `${Math.floor(totalMinutes / 60)}시간 ${minutes}분`,
   };
 }
 
@@ -306,6 +308,7 @@ function setStatus(message, isOk = false) {
 function clearResult() {
   lastResult = "";
   resultText.textContent = "--";
+  resultHoursText.textContent = "--";
   copyButton.disabled = true;
 }
 
@@ -371,6 +374,7 @@ function calculate() {
   const duration = formatDuration(totalMinutes);
   lastResult = duration.korean;
   resultText.textContent = duration.korean;
+  resultHoursText.textContent = duration.hoursMinutes;
   copyButton.disabled = false;
   setStatus(duration.excel, true);
 }
