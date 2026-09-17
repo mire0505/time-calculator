@@ -7,6 +7,8 @@ const resultText = document.querySelector("#resultText");
 const statusText = document.querySelector("#statusText");
 const copyButton = document.querySelector("#copyButton");
 const clearButton = document.querySelector("#clearButton");
+const endMinusDay = document.querySelector("#endMinusDay");
+const endPlusDay = document.querySelector("#endPlusDay");
 const currentFormatText = document.querySelector("#currentFormatText");
 const quickFormatPill = document.querySelector("#quickFormatPill");
 const startFormatPill = document.querySelector("#startFormatPill");
@@ -64,13 +66,38 @@ const formatConfigs = {
       };
     },
     formatDate(date) {
-      return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+      return `${String(date.getFullYear()).padStart(4, "0")}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
     },
   },
 };
 
 let lastResult = "";
 let currentFormatKey = "DDMMYY";
+let endDateFollowsStart = true;
+let autoEndDate = "";
+
+function parseCalendarDate(rawValue, config = getCurrentFormat()) {
+  const digits = rawValue.replace(/\D/g, "");
+
+  if (digits.length < config.dateDigits) {
+    return { ok: false };
+  }
+
+  const { day, month, year } = config.getParts(digits);
+  const date = new Date(0);
+  date.setHours(12, 0, 0, 0);
+  date.setFullYear(year, month - 1, day);
+
+  if (year < 1 || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return { ok: false };
+  }
+
+  return {
+    ok: true,
+    date,
+    display: `${pad(day)}${monthNames[month - 1]}${pad(year % 100)}`,
+  };
+}
 
 function parseDateTime(rawValue, config = getCurrentFormat()) {
   const value = rawValue.trim();
@@ -80,9 +107,19 @@ function parseDateTime(rawValue, config = getCurrentFormat()) {
   }
 
   const digits = value.replace(/\D/g, "");
+  const calendar = parseCalendarDate(value, config);
+
+  if (digits.length >= config.dateDigits && !calendar.ok) {
+    return { ok: false, message: "날짜가 올바르지 않습니다." };
+  }
 
   if (digits.length > 0 && digits.length < config.totalDigits) {
-    return { ok: false, incomplete: true, message: "입력 중" };
+    return {
+      ok: false,
+      incomplete: true,
+      message: "입력 중",
+      display: calendar.ok ? `${calendar.display} ${digits.slice(config.dateDigits).padEnd(4, "-")}` : "",
+    };
   }
 
   if (digits.length !== config.totalDigits) {
@@ -93,7 +130,8 @@ function parseDateTime(rawValue, config = getCurrentFormat()) {
   const timeStart = config.dateDigits;
   const hour = Number(digits.slice(timeStart, timeStart + 2));
   const minute = Number(digits.slice(timeStart + 2, timeStart + 4));
-  const date = new Date(year, month - 1, day, hour, minute);
+  const date = new Date(calendar.date);
+  date.setHours(hour, minute, 0, 0);
 
   const isValid =
     date.getFullYear() === year &&
@@ -109,7 +147,7 @@ function parseDateTime(rawValue, config = getCurrentFormat()) {
   return {
     ok: true,
     date,
-    display: `${pad(day)}${monthNames[month - 1]}${String(year).slice(-2)} ${pad(hour)}${pad(minute)}`,
+    display: `${calendar.display} ${pad(hour)}${pad(minute)}`,
   };
 }
 
@@ -132,17 +170,75 @@ function formatCompactDateTime(rawValue, config = getCurrentFormat()) {
 }
 
 function formatInputValue(input) {
+  const caret = input.selectionStart;
+  const digitsBeforeCaret = input.value.slice(0, caret).replace(/\D/g, "").length;
   input.value = formatCompactDateTime(input.value);
-}
-
-function formatDateForInput(date, config = getCurrentFormat()) {
-  return `${config.formatDate(date)} ${pad(date.getHours())}${pad(date.getMinutes())}`;
+  const nextCaret = digitsBeforeCaret + (digitsBeforeCaret > getCurrentFormat().dateDigits ? 1 : 0);
+  if (caret !== null) {
+    input.setSelectionRange(nextCaret, nextCaret);
+  }
 }
 
 function updateQuickInputFromFields() {
-  if (startInput.value && endInput.value) {
-    quickInput.value = `${startInput.value} / ${endInput.value}`;
+  quickInput.value = startInput.value || endInput.value
+    ? `${startInput.value.trim()} / ${endInput.value.trim()}`
+    : "";
+}
+
+function syncEndDateFromStart() {
+  if (!endDateFollowsStart) {
+    return;
   }
+
+  const config = getCurrentFormat();
+  const startDate = parseCalendarDate(startInput.value);
+  const time = endInput.value.replace(/\D/g, "").slice(config.dateDigits);
+
+  if (!startDate.ok) {
+    // Do not leave a stale automatic end date attached to an unfinished start date.
+    if (!time) {
+      endInput.value = "";
+      autoEndDate = "";
+    }
+    return;
+  }
+
+  autoEndDate = config.formatDate(startDate.date);
+  endInput.value = `${autoEndDate} ${time}`;
+}
+
+function shiftedEndDate(offset) {
+  const calendar = parseCalendarDate(endInput.value);
+  if (!calendar.ok) {
+    return null;
+  }
+
+  const date = new Date(calendar.date);
+  date.setDate(date.getDate() + offset);
+  const year = date.getFullYear();
+  const minYear = currentFormatKey === "YYYYMMDD" ? 1 : 2000;
+  const maxYear = currentFormatKey === "YYYYMMDD" ? 9999 : 2099;
+  return year >= minYear && year <= maxYear ? date : null;
+}
+
+function updateDayControls() {
+  endMinusDay.disabled = !shiftedEndDate(-1);
+  endPlusDay.disabled = !shiftedEndDate(1);
+}
+
+function changeEndDay(offset) {
+  const date = shiftedEndDate(offset);
+  if (!date) {
+    return;
+  }
+
+  const config = getCurrentFormat();
+  const time = endInput.value.replace(/\D/g, "").slice(config.dateDigits);
+  endInput.value = `${config.formatDate(date)} ${time}`;
+  endDateFollowsStart = false;
+  autoEndDate = "";
+  updateQuickInputFromFields();
+  calculate();
 }
 
 function updateFormatUI() {
@@ -162,24 +258,31 @@ function updateFormatUI() {
 
 function changeDateFormat(nextFormatKey) {
   const previousFormat = getCurrentFormat();
-  const previousStart = parseDateTime(startInput.value, previousFormat);
-  const previousEnd = parseDateTime(endInput.value, previousFormat);
+  const fields = [startInput, endInput].map((input) => ({
+    input,
+    calendar: parseCalendarDate(input.value, previousFormat),
+    time: input.value.replace(/\D/g, "").slice(previousFormat.dateDigits),
+  }));
+
+  if (nextFormatKey !== "YYYYMMDD" && fields.some(({ calendar }) =>
+    calendar.ok && (calendar.date.getFullYear() < 2000 || calendar.date.getFullYear() > 2099))) {
+    formatOptions.forEach((option) => { option.checked = option.value === currentFormatKey; });
+    setStatus("2000~2099년 밖의 날짜는 YYYYMMDD 형식으로 입력하세요.");
+    return;
+  }
 
   currentFormatKey = nextFormatKey;
   updateFormatUI();
 
-  if (previousStart.ok) {
-    startInput.value = formatDateForInput(previousStart.date);
-  } else {
-    formatInputValue(startInput);
-  }
+  fields.forEach(({ input, calendar, time }) => {
+    if (calendar.ok) {
+      input.value = `${getCurrentFormat().formatDate(calendar.date)} ${time}`;
+    } else {
+      formatInputValue(input);
+    }
+  });
 
-  if (previousEnd.ok) {
-    endInput.value = formatDateForInput(previousEnd.date);
-  } else {
-    formatInputValue(endInput);
-  }
-
+  syncEndDateFromStart();
   updateQuickInputFromFields();
   calculate();
 }
@@ -216,13 +319,14 @@ function getPreviewText(parsed) {
   }
 
   if (parsed.incomplete) {
-    return "입력 중";
+    return parsed.display ? `인식: ${parsed.display}` : "입력 중";
   }
 
   return "확인 필요";
 }
 
 function calculate() {
+  updateDayControls();
   const start = parseDateTime(startInput.value);
   const end = parseDateTime(endInput.value);
   const hasStart = !start.empty;
@@ -290,12 +394,17 @@ function syncQuickInput() {
   if (!parts) {
     startInput.value = "";
     endInput.value = "";
+    endDateFollowsStart = true;
+    autoEndDate = "";
     calculate();
     return;
   }
 
   startInput.value = formatCompactDateTime(parts[0]);
   endInput.value = formatCompactDateTime(parts[1]);
+  endDateFollowsStart = !endInput.value;
+  autoEndDate = "";
+  syncEndDateFromStart();
   calculate();
 }
 
@@ -311,23 +420,46 @@ formatOptions.forEach((option) => {
 
 startInput.addEventListener("input", () => {
   formatInputValue(startInput);
+  syncEndDateFromStart();
+  updateQuickInputFromFields();
   calculate();
 });
 
 endInput.addEventListener("input", () => {
   formatInputValue(endInput);
+  const digits = endInput.value.replace(/\D/g, "");
+  if (!digits) {
+    endDateFollowsStart = true;
+    autoEndDate = "";
+  } else if (digits.slice(0, getCurrentFormat().dateDigits) !== autoEndDate) {
+    endDateFollowsStart = false;
+  }
+  updateQuickInputFromFields();
   calculate();
 });
+
+function prepareEndTimeInput() {
+  const digits = endInput.value.replace(/\D/g, "");
+  if (digits.length === getCurrentFormat().dateDigits && parseCalendarDate(endInput.value).ok) {
+    endInput.value = `${digits} `;
+    endInput.setSelectionRange(endInput.value.length, endInput.value.length);
+  }
+}
+
+endInput.addEventListener("focus", prepareEndTimeInput);
+endInput.addEventListener("click", prepareEndTimeInput);
+
+endMinusDay.addEventListener("click", () => changeEndDay(-1));
+endPlusDay.addEventListener("click", () => changeEndDay(1));
 
 clearButton.addEventListener("click", () => {
   quickInput.value = "";
   startInput.value = "";
   endInput.value = "";
-  startPreview.textContent = previewIdleText;
-  endPreview.textContent = previewIdleText;
-  clearResult();
-  setStatus("");
-  quickInput.focus();
+  endDateFollowsStart = true;
+  autoEndDate = "";
+  calculate();
+  startInput.focus();
 });
 
 copyButton.addEventListener("click", async () => {
@@ -344,5 +476,4 @@ copyButton.addEventListener("click", async () => {
 });
 
 updateFormatUI();
-quickInput.value = "230526 1743 / 260526 1035";
-syncQuickInput();
+calculate();

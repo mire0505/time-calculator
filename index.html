@@ -73,11 +73,11 @@
             <output id="startPreview">인식 대기</output>
           </label>
 
-          <label class="field-card" for="endInput">
-            <span class="label-row">
+          <div class="field-card">
+            <label class="label-row" for="endInput">
               <span>종료</span>
               <span id="endFormatPill" class="format-pill">DDMMYY HHMM</span>
-            </span>
+            </label>
             <input
               id="endInput"
               type="text"
@@ -86,9 +86,14 @@
               spellcheck="false"
               maxlength="11"
               placeholder="예: 260526 1035"
+              aria-describedby="endPreview"
             />
+            <div class="day-controls" role="group" aria-label="종료 날짜 조정">
+              <button id="endMinusDay" type="button" aria-label="종료 날짜 하루 감소" title="종료 날짜 하루 감소" disabled>day -1</button>
+              <button id="endPlusDay" type="button" aria-label="종료 날짜 하루 증가" title="종료 날짜 하루 증가" disabled>day +1</button>
+            </div>
             <output id="endPreview">인식 대기</output>
-          </label>
+          </div>
         </div>
 
         <section class="result-panel" aria-live="polite">
